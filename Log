@@ -1,0 +1,105 @@
+ import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Livro {
+    private String titulo;
+    private String autor;
+    private double preco;
+    private int quantidade;
+
+    public Livro(String titulo, String autor, double preco, int quantidade) {
+        this.titulo = titulo;
+        this.autor = autor;
+        this.preco = preco;
+        this.quantidade = quantidade;
+    }
+
+    public void atualizarEstoque(int quantidadeComprada) throws LivroIndisponivelException {
+        if (quantidadeComprada > this.quantidade) {
+            throw new LivroIndisponivelException("Não há quantidade suficiente de '" + this.titulo + "' em estoque.");
+        }
+        this.quantidade -= quantidadeComprada;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public double getPreco() {
+        return preco;
+    }
+}
+
+class CarrinhoDeCompras {
+    private List<Livro> livros = new ArrayList<>();
+    private static final String LOG_FILE = "log_" + LocalDate.now() + ".txt";
+
+    public void adicionarLivro(Livro livro) {
+        livros.add(livro);
+    }
+
+    public void removerLivro(Livro livro) {
+        livros.remove(livro);
+    }
+
+    public void finalizarCompra() {
+        try (FileWriter fw = new FileWriter(LOG_FILE, true);
+             PrintWriter logWriter = new PrintWriter(fw)) {
+            for (Livro livro : livros) {
+                livro.atualizarEstoque(1); // Assumindo a compra de 1 unidade de cada livro
+            }
+            livros.clear(); // Esvazia o carrinho
+            System.out.println("Compra finalizada com sucesso!");
+        } catch (LivroIndisponivelException e) {
+            try (FileWriter fw = new FileWriter(LOG_FILE, true);
+                 PrintWriter logWriter = new PrintWriter(fw)) {
+                logWriter.println(e.getMessage());
+            } catch (IOException ioe) {
+                System.out.println("Erro ao gravar no arquivo de log: " + ioe.getMessage());
+            }
+            System.out.println(e.getMessage());
+        } catch (IOException e) {
+            System.out.println("Erro ao gravar no arquivo de log: " + e.getMessage());
+        }
+    }
+}
+
+class LivroIndisponivelException extends Exception {
+    public LivroIndisponivelException(String message) {
+        super(message);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Livro livro1 = new Livro("1984", "George Orwell", 20.0, 5);
+        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
+        carrinho.adicionarLivro(livro1);
+        carrinho.finalizarCompra();
+    }
+}
+
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.time.LocalDate;
+
+public class LogViewer {
+    private static final String LOG_FILE = "log_" + LocalDate.now() + ".txt";
+
+    public static void main(String[] args) {
+        try (BufferedReader br = new BufferedReader(new FileReader(LOG_FILE))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                System.out.println(line);
+            }
+        } catch (IOException e) {
+            System.out.println("Erro ao ler o arquivo de log: " + e.getMessage());
+        }
+    }
+}
